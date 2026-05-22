@@ -1,0 +1,47 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.scopes { display: flex; flex-wrap: wrap; gap: 8px; }
+.scope-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  font-family: var(--font);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition);
+}
+.scope-chip:hover { border-color: var(--primary); color: var(--text); }
+.scope-chip.on {
+  background: var(--ods-black);
+  border-color: var(--ods-black);
+  color: #FFF;
+}
+.scope-chip.on:hover { background: var(--ods-grey-800); border-color: var(--ods-grey-800); }
+.scope-chip i { font-size: 14px; line-height: 1; }
+
+.secret-box {
+  display: block;
+  background: var(--ods-black);
+  color: #FFF;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  word-break: break-all;
+  white-space: pre-wrap;
+  min-width: 0;
+}
+
+.min-w-0 { min-width: 0; }
+

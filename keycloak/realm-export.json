@@ -1,0 +1,127 @@
+{
+  "realm": "ai-platform",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 28800,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      { "name": "ROLE_ADMIN" },
+      { "name": "ROLE_DEVELOPER" },
+      { "name": "ROLE_DATA_ENG" },
+      { "name": "ROLE_DATA_SCI" },
+      { "name": "ROLE_ACCOUNTANT" },
+      { "name": "ROLE_VIEWER" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "ai-platform-frontend",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:4200/*", "http://localhost/*", "http://localhost:8080/*"],
+      "webOrigins": ["http://localhost:4200", "http://localhost", "+"],
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "+"
+      },
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "protocolMappers": [
+        {
+          "name": "department",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "department",
+            "claim.name": "department",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "data_access_level",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "data_access_level",
+            "claim.name": "data_access_level",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "team",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "team",
+            "claim.name": "team",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "ai-platform-backend",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "admin.demo",
+      "email": "admin@ai-platform.local",
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "Demo",
+      "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
+      "realmRoles": ["ROLE_ADMIN"],
+      "attributes": {
+        "department": ["IT"],
+        "team": ["platform"],
+        "data_access_level": ["L3"]
+      }
+    },
+    {
+      "username": "dev.demo",
+      "email": "dev@ai-platform.local",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "dev123", "temporary": false }],
+      "realmRoles": ["ROLE_DEVELOPER"],
+      "attributes": {
+        "department": ["Engineering"],
+        "team": ["backend"],
+        "data_access_level": ["L2"]
+      }
+    },
+    {
+      "username": "compta.demo",
+      "email": "compta@ai-platform.local",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "compta123", "temporary": false }],
+      "realmRoles": ["ROLE_ACCOUNTANT"],
+      "attributes": {
+        "department": ["Finance"],
+        "team": ["payroll"],
+        "data_access_level": ["L2"]
+      }
+    }
+  ]
+}
+

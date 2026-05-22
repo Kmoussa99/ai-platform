@@ -1,0 +1,31 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.page-hd { margin-bottom: 16px; }
+
+.dropzone {
+  text-align: center; padding: 32px;
+  border: 2px dashed var(--border) !important;
+  transition: all var(--transition);
+}
+.dropzone.over { border-color: var(--primary) !important; background: var(--primary-light); }
+
+.upload-btn {
+  display: inline-block; margin-top: 12px;
+  padding: 8px 16px; background: var(--primary); color: #000;
+  cursor: pointer; font-weight: 600;
+}
+
+.progress {
+  margin-top: 12px; height: 6px; width: 100%;
+  background: var(--surface3); overflow: hidden;
+}
+.progress-bar { height: 100%; background: var(--primary); transition: width 200ms; }
+
+.dropzone-icon { font-size: 40px; color: var(--primary); display: inline-block; }

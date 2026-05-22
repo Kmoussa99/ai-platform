@@ -1,0 +1,256 @@
+## ===========================================================
+## Enterprise AI Platform - Stack DEV
+##
+## Démarrage rapide (infra uniquement) :
+##   docker compose up -d
+##
+## Démarrage complet (avec services applicatifs après build) :
+##   1) Construire tous les JARs    : ./scripts/build-all.sh
+##   2) Démarrer les services app   : docker compose --profile app up -d
+## ===========================================================
+
+networks:
+  ai-net:
+    driver: bridge
+
+volumes:
+  pg_data:
+  pg_keycloak_data:
+  redis_data:
+  qdrant_data:
+  minio_data:
+  kafka_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+services:
+
+  # ---------- DATA LAYER ----------
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-postgres
+    environment:
+      POSTGRES_USER: ai_admin
+      POSTGRES_PASSWORD: ai_admin_pwd
+      POSTGRES_MULTIPLE_DATABASES: auth_db,chat_db,token_db,document_db,payroll_db,training_db
+    ports: ["5432:5432"]
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./scripts/init-multi-db.sh:/docker-entrypoint-initdb.d/init-multi-db.sh:ro
+    networks: [ai-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-keycloak:
+    image: postgres:16-alpine
+    container_name: ai-postgres-keycloak
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_pwd
+      POSTGRES_DB: keycloak
+    volumes:
+      - pg_keycloak_data:/var/lib/postgresql/data
+    networks: [ai-net]
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-redis
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
+    networks: [ai-net]
+    command: redis-server --appendonly yes --requirepass redis_pwd
+
+  qdrant:
+    image: qdrant/qdrant:v1.10.0
+    container_name: ai-qdrant
+    ports: ["6333:6333", "6334:6334"]
+    volumes: [qdrant_data:/qdrant/storage]
+    networks: [ai-net]
+
+  minio:
+    image: minio/minio:latest
+    container_name: ai-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_admin_pwd
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [minio_data:/data]
+    networks: [ai-net]
+
+  # ---------- KAFKA ----------
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: ai-kafka
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes: [kafka_data:/var/lib/kafka/data]
+    networks: [ai-net]
+
+  # ---------- LLM ENGINE ----------
+  # Ollama tourne en NATIF sur l'hôte macOS (Metal/GPU) — installé via:
+  #   curl -fsSL https://ollama.com/install.sh | sh
+  # Les services y accèdent via http://host.docker.internal:11434
+
+  # ---------- IDENTITY ----------
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: ai-keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_pwd
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+      KC_HOSTNAME_URL: "http://localhost:8080"
+      KC_HOSTNAME_ADMIN_URL: "http://localhost:8080"
+      KC_HTTP_ENABLED: "true"
+    ports: ["8080:8080"]
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on: [postgres-keycloak]
+    networks: [ai-net]
+
+  # ---------- BACKEND MICROSERVICES ----------
+  gateway:
+    build: ./gateway
+    container_name: ai-gateway
+    profiles: ["app"]
+    ports: ["8000:8000"]
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/ai-platform
+      KEYCLOAK_JWKS: http://keycloak:8080/realms/ai-platform/protocol/openid-connect/certs
+    depends_on: [keycloak, redis]
+    networks: [ai-net]
+
+  auth-service:
+    build: ./auth-service
+    container_name: ai-auth-service
+    profiles: ["app"]
+    ports: ["8081:8081"]
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/ai-platform
+      KEYCLOAK_JWKS: http://keycloak:8080/realms/ai-platform/protocol/openid-connect/certs
+    depends_on: [keycloak]
+    networks: [ai-net]
+
+  chat-service:
+    build: ./chat-service
+    container_name: ai-chat-service
+    profiles: ["app"]
+    ports: ["8082:8082"]
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:1.5b
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/ai-platform
+      KEYCLOAK_JWKS: http://keycloak:8080/realms/ai-platform/protocol/openid-connect/certs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: [postgres, qdrant, kafka]
+    networks: [ai-net]
+
+  token-service:
+    build: ./token-service
+    container_name: ai-token-service
+    profiles: ["app"]
+    ports: ["8083:8083"]
+    environment:
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/ai-platform
+      KEYCLOAK_JWKS: http://keycloak:8080/realms/ai-platform/protocol/openid-connect/certs
+    depends_on: [postgres, redis]
+    networks: [ai-net]
+
+  document-service:
+    build: ./document-service
+    container_name: ai-document-service
+    profiles: ["app"]
+    ports: ["8084:8084"]
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/ai-platform
+      KEYCLOAK_JWKS: http://keycloak:8080/realms/ai-platform/protocol/openid-connect/certs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: [postgres, qdrant, minio, kafka]
+    networks: [ai-net]
+
+  payroll-service:
+    build: ./payroll-service
+    container_name: ai-payroll-service
+    profiles: ["app"]
+    ports: ["8085:8085"]
+    environment:
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/ai-platform
+      KEYCLOAK_JWKS: http://keycloak:8080/realms/ai-platform/protocol/openid-connect/certs
+    depends_on: [postgres]
+    networks: [ai-net]
+
+  ml-service:
+    build: ./ml-service
+    container_name: ai-ml-service
+    profiles: ["app"]
+    ports: ["8086:8086"]
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: [minio, kafka]
+    networks: [ai-net]
+
+  frontend:
+    build: ./frontend
+    container_name: ai-frontend
+    profiles: ["app"]
+    ports: ["4200:80"]
+    depends_on: [gateway]
+    networks: [ai-net]
+
+  # ---------- OBSERVABILITY ----------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ai-prometheus
+    ports: ["9090:9090"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks: [ai-net]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ai-grafana
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes: [grafana_data:/var/lib/grafana]
+    networks: [ai-net]
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: ai-loki
+    ports: ["3100:3100"]
+    volumes: [loki_data:/loki]
+    networks: [ai-net]
+

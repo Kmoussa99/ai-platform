@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs: [{ targets: ['gateway:8000'] }]
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs: [{ targets: ['auth-service:8081'] }]
+  - job_name: 'chat-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs: [{ targets: ['chat-service:8082'] }]
+  - job_name: 'token-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs: [{ targets: ['token-service:8083'] }]
+  - job_name: 'document-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs: [{ targets: ['document-service:8084'] }]
+  - job_name: 'payroll-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs: [{ targets: ['payroll-service:8085'] }]
+  - job_name: 'ml-service'
+    metrics_path: '/metrics'
+    static_configs: [{ targets: ['ml-service:8086'] }]
+

@@ -1,0 +1,75 @@
+<aside class="sb" [class.collapsed]="collapsed">
+  <!-- Logo -->
+  <div class="sb-logo">
+    <div class="sb-mark">Y</div>
+    @if (!collapsed) {
+      <div>
+        <div class="sb-brand">Yérédon AI</div>
+        <div class="sb-tag">Enterprise Platform</div>
+      </div>
+    }
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sb-nav">
+    @for (item of navItems; track item.id) {
+      <a [routerLink]="['/', item.path]" routerLinkActive="active"
+         [title]="collapsed ? item.label : null" class="sb-link">
+        <i class="sb-icon bi" [ngClass]="item.icon"></i>
+        @if (!collapsed) { <span class="sb-label">{{ item.label }}</span> }
+      </a>
+    }
+    <div class="sb-sep"></div>
+    @for (item of adminItems; track item.id) {
+      <a [routerLink]="['/', item.path]" routerLinkActive="active"
+         [title]="collapsed ? item.label : null" class="sb-link">
+        <i class="sb-icon bi" [ngClass]="item.icon"></i>
+        @if (!collapsed) { <span class="sb-label">{{ item.label }}</span> }
+      </a>
+    }
+  </nav>
+
+  <!-- Bottom -->
+  <div class="sb-bot">
+    @if (!collapsed) {
+      <div class="sb-card">
+        <div class="sb-row">
+          <span class="sb-dot"></span>
+          <span class="sb-model">{{ model }}</span>
+        </div>
+        <div class="sb-quota">
+          <span>Inférence locale</span>
+          <span class="sb-infinity">∞</span>
+        </div>
+      </div>
+    }
+
+    <div class="sb-user" [class.center]="collapsed">
+      <div class="sb-avatar">{{ user.initials }}</div>
+      @if (!collapsed) {
+        <div style="overflow:hidden;flex:1">
+          <div class="sb-uname">{{ user.name }}</div>
+          <div class="sb-urole">{{ user.role }}</div>
+        </div>
+      }
+    </div>
+
+    <button class="sb-btn" (click)="toggleDark.emit()" [title]="darkMode ? 'Mode clair' : 'Mode sombre'">
+      <i class="sb-icon bi" [ngClass]="darkMode ? 'bi-sun' : 'bi-moon-stars'"></i>
+      @if (!collapsed) { <span>{{ darkMode ? 'Mode clair' : 'Mode sombre' }}</span> }
+    </button>
+
+    @if (kcEnabled) {
+      <button class="sb-btn" (click)="logout.emit()" title="Déconnexion">
+        <i class="sb-icon bi bi-box-arrow-right"></i>
+        @if (!collapsed) { <span>Déconnexion</span> }
+      </button>
+    }
+
+    <button class="sb-btn" (click)="toggleCollapse.emit()" [title]="collapsed ? 'Développer' : 'Réduire'">
+      <i class="sb-icon bi" [ngClass]="collapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+      @if (!collapsed) { <span>Réduire</span> }
+    </button>
+  </div>
+</aside>
+

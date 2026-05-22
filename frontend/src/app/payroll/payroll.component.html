@@ -1,0 +1,77 @@
+<div class="page">
+  <header class="page-hd">
+    <div class="title">Paie — Côte d'Ivoire</div>
+    <div class="subtitle">Calculs SYSCOHADA + barèmes CNPS / ITS 2024-2025 · DSF / virements / journal</div>
+  </header>
+
+  <div class="card card-accent" style="margin-bottom:16px">
+    <div style="font-weight:600;margin-bottom:12px">Simulateur express</div>
+    <div class="grid">
+      <div><label class="muted">Matricule</label><input [(ngModel)]="emp.matricule" placeholder="EMP001"></div>
+      <div><label class="muted">Nom</label><input [(ngModel)]="emp.nom" placeholder="KONAN"></div>
+      <div><label class="muted">Prénoms</label><input [(ngModel)]="emp.prenoms" placeholder="Jean Baptiste"></div>
+      <div><label class="muted">Salaire brut (FCFA)</label>
+        <input type="number" [(ngModel)]="emp.salaireBrutBase"></div>
+    </div>
+    <div class="row" style="margin-top:12px;gap:8px">
+      <button (click)="simulate()" [disabled]="loading()">Simuler</button>
+      <button class="secondary" (click)="reset()">Réinitialiser</button>
+    </div>
+  </div>
+
+  @if (result()) {
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-weight:600;margin-bottom:8px">Bulletin simulé</div>
+      <div class="grid grid-3">
+        <div class="metric">
+          <div class="metric-l">Net à payer</div>
+          <div class="metric-v primary">{{ result()!.netAPayer | number:'1.0-0':'fr' }} FCFA</div>
+        </div>
+        <div class="metric">
+          <div class="metric-l">Coût total employeur</div>
+          <div class="metric-v">{{ result()!.coutTotalEmployeur | number:'1.0-0':'fr' }} FCFA</div>
+        </div>
+        <div class="metric">
+          <div class="metric-l">Taux de retenues</div>
+          <div class="metric-v">{{ retentionPct() }} %</div>
+        </div>
+      </div>
+      <table style="margin-top:12px">
+        <tr><td>Salaire brut total</td><td class="num">{{ result()!.salaireBrutTotal | number:'1.0-0':'fr' }} FCFA</td></tr>
+        <tr><td>CNPS salarial</td><td class="num neg">- {{ result()!.cnpsSalarial | number:'1.0-0':'fr' }} FCFA</td></tr>
+        <tr><td>ITS</td><td class="num neg">- {{ result()!.its | number:'1.0-0':'fr' }} FCFA</td></tr>
+        <tr><td><strong>Net à payer</strong></td>
+            <td class="num"><strong style="color:var(--primary)">{{ result()!.netAPayer | number:'1.0-0':'fr' }} FCFA</strong></td></tr>
+        @if (result()!.cnpsPatronal != null) {
+          <tr><td class="muted">CNPS patronal (info)</td><td class="num muted">{{ result()!.cnpsPatronal | number:'1.0-0':'fr' }} FCFA</td></tr>
+        }
+      </table>
+    </div>
+  }
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div style="font-weight:600">Employés ({{ employees().length }})</div>
+      <button class="ghost" (click)="loadEmployees()" title="Recharger">
+        <i class="bi bi-arrow-clockwise"></i> Recharger
+      </button>
+    </div>
+    @if (employees().length) {
+      <table>
+        <thead><tr><th>Matricule</th><th>Nom</th><th>Salaire brut</th></tr></thead>
+        <tbody>
+          @for (e of employees(); track e.id || e.matricule) {
+            <tr>
+              <td><code>{{ e.matricule }}</code></td>
+              <td>{{ e.nom }} {{ e.prenoms }}</td>
+              <td class="num">{{ e.salaireBrutBase | number:'1.0-0':'fr' }} FCFA</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <div class="muted" style="padding:20px;text-align:center">Aucun employé enregistré.</div>
+    }
+  </div>
+</div>
+

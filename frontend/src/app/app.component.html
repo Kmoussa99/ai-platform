@@ -1,0 +1,13 @@
+<div class="shell">
+  <app-sidebar
+    [collapsed]="collapsed()"
+    [darkMode]="darkMode()"
+    [kcEnabled]="kcEnabled"
+    [user]="user()"
+    (toggleCollapse)="collapsed.set(!collapsed())"
+    (toggleDark)="darkMode.set(!darkMode())"
+    (logout)="logout()">
+  </app-sidebar>
+  <main class="main"><router-outlet/></main>
+</div>
+

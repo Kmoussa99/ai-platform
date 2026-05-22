@@ -1,0 +1,29 @@
+version: "3.9"
+
+# Production overrides : utilise des images pré-construites depuis votre registry,
+# secrets externes (Vault/Sealed Secrets), et ressources dimensionnées.
+#
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  gateway:
+    image: ghcr.io/ci/ai-platform-gateway:1.0.0
+    deploy: { replicas: 2, resources: { limits: { cpus: "1", memory: 1G } } }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+
+  chat-service:
+    image: ghcr.io/ci/ai-platform-chat:1.0.0
+    deploy: { replicas: 3 }
+
+  ml-service:
+    image: ghcr.io/ci/ai-platform-ml:1.0.0
+    # GPU
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+
+  ollama:
+    runtime: nvidia
+

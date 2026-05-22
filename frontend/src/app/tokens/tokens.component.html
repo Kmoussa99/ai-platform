@@ -1,0 +1,143 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">API Tokens</h1>
+      <p class="page-subtitle">Jetons d'accès machine pour vos pipelines, scripts et agents.</p>
+    </div>
+  </header>
+
+  <!-- Création -->
+  <section class="ods-card ods-card--accent mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+      <h2 class="h6 fw-bold mb-0">Créer un nouveau token</h2>
+      <span class="badge text-bg-light border">{{ scopes.length }} scope(s) sélectionné(s)</span>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12">
+        <label for="tk-name" class="form-label fw-semibold">Nom du token</label>
+        <input id="tk-name" class="form-control" [(ngModel)]="name"
+               placeholder="ex: Agent-Paie-Prod">
+      </div>
+
+      <div class="col-12">
+        <label class="form-label fw-semibold d-block">Scopes (permissions)</label>
+        <div class="scopes">
+          @for (s of allScopes; track s) {
+            <button type="button"
+                    class="scope-chip"
+                    [class.on]="scopes.includes(s)"
+                    (click)="toggle(s)">
+              <i class="bi" [ngClass]="scopes.includes(s) ? 'bi-check-square-fill' : 'bi-square'"></i>
+              <span>{{ s }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <label for="tk-rate" class="form-label fw-semibold">Rate limit (req/min)</label>
+        <input id="tk-rate" type="number" class="form-control" [(ngModel)]="rateLimit">
+      </div>
+      <div class="col-md-4">
+        <label for="tk-exp" class="form-label fw-semibold">Expire dans (jours)</label>
+        <input id="tk-exp" type="number" class="form-control" [(ngModel)]="expiresInDays" placeholder="∞">
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <button type="button"
+                class="btn btn-primary w-100"
+                (click)="create()"
+                [disabled]="!name || !scopes.length">
+          <i class="bi bi-key-fill me-1"></i> Générer
+        </button>
+      </div>
+    </div>
+
+    @if (secret()) {
+      <div class="alert alert-warning mt-3 mb-0 d-flex align-items-start gap-2" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-5 mt-1"></i>
+        <div class="flex-grow-1 min-w-0">
+          <div class="fw-bold mb-2">Copiez ce secret maintenant — il ne sera plus jamais affiché&nbsp;:</div>
+          <div class="d-flex gap-2 align-items-stretch flex-wrap">
+            <code class="secret-box flex-grow-1">{{ secret() }}</code>
+            <button type="button" class="btn btn-dark" (click)="copy(secret()!)">
+              <i class="bi bi-clipboard me-1"></i> Copier
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- Liste -->
+  <section class="ods-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h6 fw-bold mb-0">Mes tokens ({{ tokens().length }})</h2>
+      <button type="button" class="btn btn-link btn-sm text-decoration-none" (click)="refresh()">
+        <i class="bi bi-arrow-clockwise me-1"></i> Recharger
+      </button>
+    </div>
+
+    @if (tokens().length) {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Préfixe</th>
+              <th>Scopes</th>
+              <th class="text-end">Usage</th>
+              <th>Statut</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of tokens(); track t.id) {
+              <tr [style.opacity]="t.active ? 1 : 0.55">
+                <td><strong>{{ t.name }}</strong></td>
+                <td><code class="text-muted">{{ t.prefix }}…</code></td>
+                <td>
+                  <div class="d-flex flex-wrap gap-1">
+                    @for (s of t.scopes; track s) {
+                      <span class="badge text-bg-light border fw-normal">{{ s }}</span>
+                    }
+                  </div>
+                </td>
+                <td class="text-end">{{ t.usageCount || 0 | number }}</td>
+                <td>
+                  @if (t.active) {
+                    <span class="badge text-bg-success">
+                      <i class="bi bi-check-circle-fill me-1"></i>Actif
+                    </span>
+                  } @else {
+                    <span class="badge text-bg-secondary">
+                      <i class="bi bi-x-circle-fill me-1"></i>Révoqué
+                    </span>
+                  }
+                </td>
+                <td>
+                  <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            (click)="rotate(t.id)" [disabled]="!t.active">
+                      <i class="bi bi-arrow-repeat me-1"></i>Rotate
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                            (click)="revoke(t.id)" [disabled]="!t.active">
+                      <i class="bi bi-x-lg me-1"></i>Révoquer
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-key fs-1 d-block mb-2 opacity-50"></i>
+        Aucun token. Créez-en un ci-dessus.
+      </div>
+    }
+  </section>
+</div>
+

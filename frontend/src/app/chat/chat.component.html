@@ -1,0 +1,141 @@
+<div class="chat">
+  <!-- Sidebar conversations -->
+  <aside class="convs">
+    <div class="convs-hd">
+      <button class="new" (click)="newConversation()" title="Nouvelle conversation" aria-label="Nouvelle conversation">
+        <i class="bi bi-plus-lg"></i>
+      </button>
+      <div class="search">
+        <i class="bi bi-search"></i>
+        <input [(ngModel)]="search" placeholder="Rechercher…">
+      </div>
+    </div>
+    <div class="convs-list">
+      @if (todayConvs().length) {
+        <div class="convs-sec">Aujourd'hui</div>
+        @for (c of todayConvs(); track c.id) {
+          <button class="conv" [class.active]="svc.current()?.id === c.id" (click)="open(c.id)">
+            <div class="conv-t">{{ c.title || 'Sans titre' }}</div>
+            <div class="conv-d">{{ fmtTime(c.updatedAt || c.createdAt) }}</div>
+          </button>
+        }
+      }
+      @if (olderConvs().length) {
+        <div class="convs-sec">Précédentes</div>
+        @for (c of olderConvs(); track c.id) {
+          <button class="conv" [class.active]="svc.current()?.id === c.id" (click)="open(c.id)">
+            <div class="conv-t">{{ c.title || 'Sans titre' }}</div>
+            <div class="conv-d">{{ fmtDate(c.updatedAt || c.createdAt) }}</div>
+          </button>
+        }
+      }
+      @if (!svc.conversations().length) {
+        <div class="muted" style="padding:14px;font-size:var(--text-sm)">Aucune conversation.</div>
+      }
+    </div>
+  </aside>
+
+  <!-- Main chat panel -->
+  <section class="panel">
+    <header class="hd">
+      <div class="row">
+        <span style="font-weight:600">{{ svc.current()?.title || 'Nouvelle conversation' }}</span>
+        <span class="mode-badge" [style.background]="modeStyle().bg">{{ modeStyle().label }}</span>
+      </div>
+      @if (svc.current()) {
+        <button class="ghost" (click)="deleteCurrent()" title="Supprimer">
+          <i class="bi bi-trash"></i>
+        </button>
+      }
+    </header>
+
+    <div #scroll class="msgs">
+      @for (m of svc.messages(); track $index) {
+        <div class="msg fadeIn" [class.me]="m.role === 'USER'">
+          @if (m.role === 'USER') {
+            <div class="bub me-bub">
+              @if (m.contextMode) {
+                <span class="mode-badge sm" [style.background]="modeColor(m.contextMode)">
+                  {{ modeLabel(m.contextMode) }}
+                </span>
+              }
+              <div style="white-space:pre-wrap">{{ m.content }}</div>
+            </div>
+            <div class="meta right">{{ fmtTime(m.createdAt) }}</div>
+          } @else {
+            <div class="row" style="align-items:flex-start;gap:10px">
+              <div class="ai-avatar"><i class="bi bi-stars"></i></div>
+              <div style="flex:1;min-width:0">
+                <div class="bub ai-bub">
+                  <div class="md" [innerHTML]="render(m.content)"></div>
+                  @if (m.streaming) { <span class="cursor"></span> }
+                </div>
+                @if (m.sources?.length) {
+                  <div class="sources">
+                    <i class="bi bi-paperclip"></i>
+                    <span>Sources :</span>
+                    @for (s of m.sources; track s.id) {
+                      <span class="src">[{{ s.id }}] {{ s.label }}</span>
+                    }
+                  </div>
+                }
+                <div class="meta">
+                  {{ fmtTime(m.createdAt) }}
+                  @if (m.id) {
+                    <button class="ghost xs" (click)="rate(m, 1)" [class.on]="m.feedback === 1" title="Utile">
+                      <i class="bi bi-hand-thumbs-up"></i>
+                    </button>
+                    <button class="ghost xs" (click)="rate(m, -1)" [class.on]="m.feedback === -1" title="Pas utile">
+                      <i class="bi bi-hand-thumbs-down"></i>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      @empty {
+        <div class="empty">
+          <i class="bi bi-chat-square-dots empty-icon"></i>
+          <div class="title" style="margin-top:8px">Posez votre première question</div>
+          <div class="muted" style="margin-top:4px">
+            Mode actuel : <strong>{{ modeStyle().label }}</strong>. Le moteur RAG ira chercher dans la base SYSCOHADA, CGI CI, paie CI, etc.
+          </div>
+        </div>
+      }
+    </div>
+
+    <footer class="composer">
+      <div class="row" style="margin-bottom:8px;gap:8px">
+        <select [(ngModel)]="mode" style="width:auto">
+          @for (m of modeKeys; track m) { <option [value]="m">{{ MODE_BADGES[m].label }}</option> }
+        </select>
+        <select [(ngModel)]="model" style="width:auto">
+          <option value="qwen2.5-coder:32b">qwen2.5-coder:32b</option>
+          <option value="llama3.1:70b">llama3.1:70b</option>
+          <option value="mistral:7b">mistral:7b</option>
+        </select>
+      </div>
+      <div class="input-bar">
+        <textarea
+          #ta
+          [(ngModel)]="input"
+          (keydown.control.enter)="send()"
+          (keydown.meta.enter)="send()"
+          placeholder="Votre message… (Ctrl+Entrée pour envoyer, Maj+Entrée pour saut de ligne)"
+          rows="1"
+          [disabled]="svc.streaming()"></textarea>
+        <button (click)="send()" [disabled]="svc.streaming() || !input.trim()" title="Envoyer">
+          @if (svc.streaming()) {
+            <i class="bi bi-three-dots"></i>
+          } @else {
+            <i class="bi bi-arrow-up"></i>
+          }
+        </button>
+      </div>
+      <div class="hint muted">Ctrl+Entrée pour envoyer · Maj+Entrée = saut de ligne</div>
+    </footer>
+  </section>
+</div>
+

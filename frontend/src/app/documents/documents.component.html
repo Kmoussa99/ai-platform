@@ -1,0 +1,65 @@
+<div class="page">
+  <header class="page-hd">
+    <div class="title">Base de connaissance</div>
+    <div class="subtitle">RAG : SYSCOHADA, CGI CI, Code du travail CI, paie CI, et vos documents internes.</div>
+  </header>
+
+  <div class="card card-accent dropzone"
+       [class.over]="dragOver()"
+       (drop)="onDrop($event)"
+       (dragover)="onDragOver($event)"
+       (dragleave)="dragOver.set(false)"
+       style="margin-bottom:16px">
+    <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+    <div style="font-weight:600;margin-top:8px">Glissez-déposez un fichier ici</div>
+    <div class="muted" style="margin-top:4px">PDF, DOCX, MD, TXT — indexation Qdrant + chunking automatique</div>
+    <label class="upload-btn">
+      Sélectionner un fichier
+      <input type="file" (change)="onFile($event)" hidden>
+    </label>
+    @if (progress() > 0) {
+      <div class="progress">
+        <div class="progress-bar" [style.width.%]="progress()"></div>
+      </div>
+      <div class="muted" style="margin-top:4px">{{ progress() }} %</div>
+    }
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div style="font-weight:600">Documents indexés ({{ docs().length }})</div>
+      <button class="ghost" (click)="refresh()" title="Recharger">
+        <i class="bi bi-arrow-clockwise"></i> Recharger
+      </button>
+    </div>
+    @if (docs().length) {
+      <table>
+        <thead><tr>
+          <th>Fichier</th><th>Statut</th><th>Chunks</th><th>Niveau</th><th>Date</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          @for (d of docs(); track d.id) {
+            <tr>
+              <td><strong>{{ d.filename }}</strong></td>
+              <td>
+                @if (d.status === 'INDEXED') { <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> {{ d.status }}</span> }
+                @else if (d.status === 'FAILED') { <span class="badge badge-danger"><i class="bi bi-x-circle-fill"></i> {{ d.status }}</span> }
+                @else { <span class="badge badge-warning"><i class="bi bi-hourglass-split"></i> {{ d.status }}</span> }
+              </td>
+              <td>{{ d.chunkCount ?? '—' }}</td>
+              <td><span class="badge">{{ d.accessLevel }}</span></td>
+              <td>{{ d.createdAt | date:'short':'':'fr' }}</td>
+              <td class="row" style="gap:6px">
+                <button class="secondary" (click)="reindex(d.id)">Réindexer</button>
+                <button class="danger" (click)="delete(d.id)">Supprimer</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <div class="muted" style="padding:20px;text-align:center">Aucun document indexé.</div>
+    }
+  </div>
+</div>
+

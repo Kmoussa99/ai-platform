@@ -1,0 +1,85 @@
+<div class="page">
+  <header class="page-hd">
+    <div class="title">Fine-tuning &amp; datasets</div>
+    <div class="subtitle">Lancer des jobs LoRA / QLoRA / SFT / DPO sur la base ivoirienne (paie, droit, comptabilité).</div>
+  </header>
+
+  @if (stats()) {
+    <div class="grid grid-4" style="margin-bottom:16px">
+      <div class="card metric">
+        <div class="metric-l">Exemples validés</div>
+        <div class="metric-v">{{ stats().validated || 0 | number }}</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-l">En attente</div>
+        <div class="metric-v warning">{{ stats().pending || 0 | number }}</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-l">Rejetés</div>
+        <div class="metric-v danger">{{ stats().rejected || 0 | number }}</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-l">Modèles entraînés</div>
+        <div class="metric-v primary">{{ jobs().length || 0 }}</div>
+      </div>
+    </div>
+  }
+
+  <div class="card card-accent" style="margin-bottom:16px">
+    <div style="font-weight:600;margin-bottom:12px">Lancer un nouveau job</div>
+    <div class="grid">
+      <div><label class="muted">Base model</label>
+        <input [(ngModel)]="cfg.base_model" placeholder="qwen2.5-coder:7b"></div>
+      <div><label class="muted">Méthode</label>
+        <select [(ngModel)]="cfg.method">
+          <option>LORA</option><option>QLORA</option><option>SFT</option><option>DPO</option>
+        </select>
+      </div>
+      <div><label class="muted">Dataset</label>
+        <input [(ngModel)]="cfg.dataset_path" placeholder="s3://ai-datasets/train.jsonl"></div>
+      <div><label class="muted">Epochs</label>
+        <input type="number" [(ngModel)]="cfg.epochs" min="1" max="20"></div>
+    </div>
+    <div class="row" style="margin-top:12px;justify-content:flex-end;gap:8px">
+      <button class="secondary" (click)="exportDataset()">
+        <i class="bi bi-download"></i> Export dataset
+      </button>
+      <button (click)="launch()">
+        <i class="bi bi-play-fill"></i> Lancer
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div style="font-weight:600">Jobs / modèles ({{ jobs().length }})</div>
+      <button class="ghost" (click)="refresh()" title="Recharger">
+        <i class="bi bi-arrow-clockwise"></i> Recharger
+      </button>
+    </div>
+    @if (jobs().length) {
+      @for (j of jobs(); track j.id) {
+        <div class="job-row">
+          <div>
+            <div><strong>{{ j.config?.method || j.method || 'JOB' }}</strong> · {{ j.config?.base_model || j.base_model || j.name }}</div>
+            <div class="muted" style="font-size:11px;margin-top:2px">
+              @if (j.metrics?.loss?.length) {
+                Loss : {{ j.metrics.loss[j.metrics.loss.length - 1] | number:'1.4-4' }} ·
+              }
+              @if (j.metrics?.epoch != null) {
+                Epoch {{ j.metrics.epoch }} ·
+              }
+              {{ j.id }}
+            </div>
+          </div>
+          <span class="badge" [ngClass]="badgeFor(j.status)">
+            <i class="bi" [ngClass]="iconFor(j.status)"></i> {{ j.status || 'READY' }}
+          </span>
+        </div>
+      }
+    } @else {
+      <div class="muted" style="padding:20px;text-align:center">Aucun job. Lancez-en un ci-dessus.</div>
+    }
+  </div>
+</div>
+
